@@ -14,41 +14,51 @@ function loadView(view) {
     if (view === 'dashboard') {
         pageTitle.innerText = "Dashboard สถานะผู้ป่วย";
         content.innerHTML = renderDashboardHTML();
-        fetchPatients(); // โหลดข้อมูลทันทีเมื่อเปิดหน้า
+        fetchPatients(); 
     } 
     else if (view === 'register') {
         pageTitle.innerText = "ลงทะเบียนผู้ป่วยใหม่";
         content.innerHTML = renderRegisterHTML();
     }
-    // เพิ่มการเชื่อมโยงหน้าอื่นๆ ในอนาคตที่นี่
+    // เพิ่มเงื่อนไขให้โหลดหน้า ER Screening ได้แล้ว
+    else if (view === 'er_screening') {
+        pageTitle.innerText = "คัดกรองพฤติกรรมรุนแรง (OAS)";
+        content.innerHTML = renderERScreeningHTML();
+    }
 }
-
-// ==========================================
-// ส่วนของการดึงและแสดงข้อมูล (GET)
-// ==========================================
 
 function renderDashboardHTML() {
     return `
         <div class="bg-white p-6 rounded-lg shadow">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">รายชื่อผู้ป่วยที่ลงทะเบียนแล้ว</h3>
-                <button onclick="fetchPatients()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
-                    <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
-                </button>
+                
+                <div class="flex space-x-2 w-1/2 justify-end">
+                    <div class="relative w-2/3">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="fa-solid fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="searchInput" onkeyup="filterTable()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2" placeholder="ค้นหา HN, ชื่อ, นามสกุล หรือกลุ่มโรค...">
+                    </div>
+                    <button onclick="fetchPatients()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                        <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+                    </button>
+                </div>
             </div>
+            
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse" id="patientTable">
                     <thead>
                         <tr class="bg-gray-100 text-gray-600 text-sm border-b">
-                            <th class="p-3">HN</th>
-                            <th class="p-3">CID</th>
+                            <th class="p-3 w-24">HN</th>
+                            <th class="p-3 w-32">CID</th>
                             <th class="p-3">ชื่อ-สกุล</th>
-                            <th class="p-3">Principal Dx</th>
-                            <th class="p-3">วันที่ลงทะเบียน</th>
-                        </tr>
+                            <th class="p-3 w-28">กลุ่มโรค</th>
+                            <th class="p-3 w-32">ลงทะเบียน</th>
+                            <th class="p-3 text-center w-32">จัดการ</th> </tr>
                     </thead>
                     <tbody id="patient-table-body">
-                        <tr><td colspan="5" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>
+                        <tr><td colspan="6" class="p-4 text-center text-gray-500">กำลังโหลดข้อมูล...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -58,29 +68,68 @@ function renderDashboardHTML() {
 
 async function fetchPatients() {
     const tbody = document.getElementById('patient-table-body');
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i>กำลังโหลดข้อมูล...</td></tr>`;
+    
     try {
         const response = await fetch(`${API_URL}?action=getPatients`);
         const result = await response.json();
         
+        // เก็บข้อมูลไว้ในตัวแปร Global เผื่อใช้ที่อื่น (เช่น ตอนค้นหาชื่อในหน้า ER)
+        window.patientData = result.data; 
+        
         if (result.status === 'success' && result.data.length > 0) {
             tbody.innerHTML = result.data.map(p => `
-                <tr class="border-b hover:bg-gray-50 text-sm">
+                <tr class="border-b hover:bg-gray-50 text-sm patient-row">
                     <td class="p-3 font-medium text-blue-600">${p.HN || '-'}</td>
-                    <td class="p-3">${p.CID || '-'}</td>
+                    <td class="p-3 text-gray-500">${p.CID || '-'}</td>
                     <td class="p-3">${p.Prefix || ''}${p.FirstName || ''} ${p.LastName || ''}</td>
-                    <td class="p-3"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">${p.Principal_Dx || '-'}</span></td>
-                    <td class="p-3">${p.RegisterDate ? new Date(p.RegisterDate).toLocaleDateString('th-TH') : '-'}</td>
+                    <td class="p-3"><span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">${p.Principal_Dx || '-'}</span></td>
+                    <td class="p-3 text-gray-500">${p.RegisterDate ? new Date(p.RegisterDate).toLocaleDateString('th-TH') : '-'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="goToERScreening('${p.HN}')" class="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded text-xs hover:bg-red-500 hover:text-white transition shadow-sm">
+                            <i class="fa-solid fa-truck-medical"></i> ประเมิน OAS
+                        </button>
+                    </td>
                 </tr>
             `).join('');
         } else {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">ยังไม่มีข้อมูลผู้ป่วยในระบบ</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">ยังไม่มีข้อมูลผู้ป่วยในระบบ</td></tr>`;
         }
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
         console.error('Error fetching patients:', error);
     }
 }
+// ฟังก์ชัน Universal Search (กรองข้อมูลในตาราง)
+function filterTable() {
+    const input = document.getElementById("searchInput").value.toLowerCase();
+    const rows = document.querySelectorAll(".patient-row");
+    
+    rows.forEach(row => {
+        // ดึงข้อความทั้งหมดในแถวนั้นมาแปลงเป็นตัวพิมพ์เล็กแล้วหาคำที่ตรงกัน
+        const textContent = row.innerText.toLowerCase();
+        if (textContent.includes(input)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
 
+// ฟังก์ชันลัด: เปลี่ยนหน้าไป ER พร้อมส่ง HN ไปค้นหาให้อัตโนมัติ
+function goToERScreening(hn) {
+    // โหลดหน้า ER ก่อน
+    loadView('er_screening');
+    
+    // หน่วงเวลาเล็กน้อยเพื่อให้ HTML Render เสร็จก่อนไปเติมค่า
+    setTimeout(() => {
+        const hnInput = document.getElementById('er_hn');
+        if(hnInput) {
+            hnInput.value = hn;
+            searchPatientER(); // เรียกฟังก์ชันค้นหาชื่อทันที
+        }
+    }, 100);
+}
 // ==========================================
 // ส่วนของการบันทึกข้อมูล (POST)
 // ==========================================
