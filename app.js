@@ -6,11 +6,24 @@ document.addEventListener('DOMContentLoaded', () => {
     loadView('dashboard');
 });
 
-// ฟังก์ชันสลับหน้าจอ (Routing)
+// ฟังก์ชันสลับหน้าจอ (Routing) และจัดการ Active Menu
 function loadView(view) {
     const content = document.getElementById('app-content');
     const pageTitle = document.getElementById('page-title');
 
+    // 1. จัดการแถบสีของเมนู (Active Menu)
+    // ลบ class แถบสี (bg-blue-800) ออกจากทุกเมนูก่อน
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-blue-800');
+    });
+    
+    // เติม class แถบสี ให้กับเมนูที่ตรงกับ view ที่กำลังเปิด
+    const activeNav = document.getElementById('nav-' + view);
+    if (activeNav) {
+        activeNav.classList.add('bg-blue-800');
+    }
+
+    // 2. จัดการเนื้อหาหน้าจอ
     if (view === 'dashboard') {
         pageTitle.innerText = "Dashboard สถานะผู้ป่วย";
         content.innerHTML = renderDashboardHTML();
@@ -20,13 +33,11 @@ function loadView(view) {
         pageTitle.innerText = "ลงทะเบียนผู้ป่วยใหม่";
         content.innerHTML = renderRegisterHTML();
     }
-    // เพิ่มเงื่อนไขให้โหลดหน้า ER Screening ได้แล้ว
     else if (view === 'er_screening') {
         pageTitle.innerText = "คัดกรองพฤติกรรมรุนแรง (OAS)";
         content.innerHTML = renderERScreeningHTML();
     }
 }
-
 function renderDashboardHTML() {
     return `
         <div class="bg-white p-6 rounded-lg shadow">
