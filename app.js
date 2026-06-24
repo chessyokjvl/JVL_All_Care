@@ -188,3 +188,169 @@ async function submitRegisterForm(e) {
         btn.disabled = false;
     }
 }
+
+// ==========================================
+// ส่วนของการประเมิน ER Screening (OAS)
+// ==========================================
+
+function renderERScreeningHTML() {
+    return `
+        <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-bold text-red-600 mb-4 border-b pb-2">
+                <i class="fa-solid fa-truck-medical"></i> แบบคัดกรองพฤติกรรมรุนแรงแรกรับ (OAS)
+            </h3>
+            <form id="erScreeningForm" onsubmit="submitERScreening(event)">
+                
+                <div class="mb-6 bg-gray-50 p-4 rounded border">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผู้ป่วย (HN)</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="er_hn" required class="w-1/3 border-gray-300 rounded-md shadow-sm border p-2 focus:ring-red-500 focus:border-red-500" placeholder="ระบุ HN...">
+                        <button type="button" onclick="searchPatientER()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                            <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
+                        </button>
+                    </div>
+                    <div id="er_patient_info" class="mt-2 text-sm text-blue-600 font-medium hidden">
+                        </div>
+                </div>
+
+                <div class="mb-6 space-y-4">
+                    <label class="block text-base font-medium text-gray-800">พฤติกรรมรุนแรงที่พบ (เลือกข้อที่รุนแรงที่สุด)</label>
+                    
+                    <div class="flex items-start">
+                        <input type="radio" id="oas_0" name="oas_score" value="0" class="mt-1 mr-2" checked onchange="calculateOAS()">
+                        <label for="oas_0" class="text-sm">ไม่มีพฤติกรรมรุนแรง</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="radio" id="oas_1" name="oas_score" value="1" class="mt-1 mr-2 text-yellow-500" onchange="calculateOAS()">
+                        <label for="oas_1" class="text-sm"><b>ระดับ 1:</b> หงุดหงิด ด่าทอเสียงดัง ทุบตีสิ่งของเบาๆ (Verbal / Mild Object Aggression)</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="radio" id="oas_2" name="oas_score" value="2" class="mt-1 mr-2 text-orange-500" onchange="calculateOAS()">
+                        <label for="oas_2" class="text-sm"><b>ระดับ 2:</b> ขว้างปาสิ่งของ ทำลายข้าวของเสียหาย พยายามทำร้ายตัวเอง/ผู้อื่นแต่ไม่รุนแรง</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="radio" id="oas_3" name="oas_score" value="3" class="mt-1 mr-2 text-red-600" onchange="calculateOAS()">
+                        <label for="oas_3" class="text-sm"><b>ระดับ 3:</b> ทำร้ายผู้อื่นชัดเจน มีอาวุธ ทำร้ายตัวเองรุนแรง (Severe Physical Aggression)</label>
+                    </div>
+                </div>
+
+                <div id="oas_result_box" class="mb-6 p-4 rounded bg-gray-100 border hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold">ระดับความรุนแรง: <span id="lbl_oas_level" class="text-lg"></span></span>
+                    </div>
+                    <div class="text-sm"><span class="font-bold">คำแนะนำ:</span> <span id="lbl_oas_action"></span></div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" id="btnSubmitER" class="bg-red-600 text-white px-6 py-2 rounded shadow hover:bg-red-700 flex items-center">
+                        <i class="fa-solid fa-save mr-2"></i> บันทึกการประเมิน ER
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+// ฟังก์ชันค้นหาชื่อผู้ป่วยจาก HN (จำลองการค้นหาจาก Data ที่โหลดมาแล้ว)
+function searchPatientER() {
+    const hn = document.getElementById('er_hn').value;
+    const infoBox = document.getElementById('er_patient_info');
+    
+    // ดึงข้อมูลตารางที่เคยโหลดไว้จาก Dashboard (วิธีแบบง่ายสำหรับ Prototype)
+    fetch(`${API_URL}?action=getPatients`)
+        .then(res => res.json())
+        .then(result => {
+            if (result.status === 'success') {
+                const patient = result.data.find(p => p.HN == hn);
+                if (patient) {
+                    infoBox.innerHTML = `พบผู้ป่วย: ${patient.Prefix || ''}${patient.FirstName} ${patient.LastName} [Dx: ${patient.Principal_Dx}]`;
+                    infoBox.classList.remove('hidden');
+                    infoBox.classList.remove('text-red-600');
+                    infoBox.classList.add('text-blue-600');
+                } else {
+                    infoBox.innerHTML = "ไม่พบข้อมูลผู้ป่วยในระบบ (กรุณาลงทะเบียนก่อน)";
+                    infoBox.classList.remove('hidden', 'text-blue-600');
+                    infoBox.classList.add('text-red-600');
+                }
+            }
+        });
+}
+
+// ฟังก์ชันคำนวณ OAS และแสดง Action อัตโนมัติ
+function calculateOAS() {
+    const score = parseInt(document.querySelector('input[name="oas_score"]:checked').value);
+    const box = document.getElementById('oas_result_box');
+    const lblLevel = document.getElementById('lbl_oas_level');
+    const lblAction = document.getElementById('lbl_oas_action');
+
+    box.classList.remove('hidden', 'bg-gray-100', 'bg-yellow-100', 'bg-orange-100', 'bg-red-100');
+    
+    if (score === 0) {
+        box.classList.add('bg-gray-100');
+        lblLevel.innerHTML = `<span class="text-gray-600">ปกติ (Level 0)</span>`;
+        lblAction.innerText = "ซักประวัติและดำเนินการตามขั้นตอนปกติ";
+    } else if (score === 1) {
+        box.classList.add('bg-yellow-100');
+        lblLevel.innerHTML = `<span class="text-yellow-600">ความรุนแรงระดับ 1</span>`;
+        lblAction.innerText = "เฝ้าระวังใกล้ชิด ใช้เทคนิคเจรจาต่อรอง (De-escalation) หากไม่สงบพิจารณาฉีดยา";
+    } else if (score === 2) {
+        box.classList.add('bg-orange-100');
+        lblLevel.innerHTML = `<span class="text-orange-600">ความรุนแรงระดับ 2</span>`;
+        lblAction.innerText = "เตรียมทีมเจรจา (Show of force) พิจารณาฉีดยา และเตรียมอุปกรณ์ผูกยึด";
+    } else if (score === 3) {
+        box.classList.add('bg-red-100');
+        lblLevel.innerHTML = `<span class="text-red-600">ความรุนแรงระดับ 3 (วิกฤต)</span>`;
+        lblAction.innerText = "เรียก Code ความรุนแรง, ทำการผูกยึด (Physical Restraint) ทันที และให้ยาฉีด";
+    }
+}
+
+// ฟังก์ชันส่งข้อมูลเข้า API
+async function submitERScreening(e) {
+    e.preventDefault();
+    const hn = document.getElementById('er_hn').value;
+    const score = document.querySelector('input[name="oas_score"]:checked').value;
+    
+    // กำหนด Level และ Action เพื่อเก็บลง DB
+    let level = "0", action = "ปกติ";
+    if(score == "1") { level = "1"; action = "เฝ้าระวัง/เจรจา"; }
+    else if(score == "2") { level = "2"; action = "เตรียมผูกยึด/ฉีดยา"; }
+    else if(score == "3") { level = "3"; action = "ผูกยึดทันที (Code รุนแรง)"; }
+
+    const payload = {
+        action: 'saveScreeningER',
+        data: {
+            HN: hn,
+            OAS_Score: score,
+            OAS_Level: level,
+            ActionTaken: action,
+            EvaluatorID: 'nurse_er_01' // จำลองชื่อผู้ล็อกอิน
+        }
+    };
+
+    const btn = document.getElementById('btnSubmitER');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> กำลังบันทึก...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            Swal.fire('บันทึกสำเร็จ!', 'บันทึกการประเมินแรกรับเรียบร้อยแล้ว', 'success');
+            document.getElementById('erScreeningForm').reset();
+            document.getElementById('oas_result_box').classList.add('hidden');
+            document.getElementById('er_patient_info').classList.add('hidden');
+        } else {
+            Swal.fire('ผิดพลาด', result.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อระบบได้', 'error');
+    } finally {
+        btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> บันทึกการประเมิน ER';
+        btn.disabled = false;
+    }
+}
