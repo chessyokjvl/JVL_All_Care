@@ -300,29 +300,31 @@ function renderERScreeningHTML() {
     `;
 }
 
-// ฟังก์ชันค้นหาชื่อผู้ป่วยจาก HN (จำลองการค้นหาจาก Data ที่โหลดมาแล้ว)
+// ฟังก์ชันค้นหาชื่อผู้ป่วยจาก HN (ดึงจากข้อมูลที่มีอยู่แล้ว)
 function searchPatientER() {
     const hn = document.getElementById('er_hn').value;
     const infoBox = document.getElementById('er_patient_info');
     
-    // ดึงข้อมูลตารางที่เคยโหลดไว้จาก Dashboard (วิธีแบบง่ายสำหรับ Prototype)
-    fetch(`${API_URL}?action=getPatients`)
-        .then(res => res.json())
-        .then(result => {
-            if (result.status === 'success') {
-                const patient = result.data.find(p => p.HN == hn);
-                if (patient) {
-                    infoBox.innerHTML = `พบผู้ป่วย: ${patient.Prefix || ''}${patient.FirstName} ${patient.LastName} [Dx: ${patient.Principal_Dx}]`;
-                    infoBox.classList.remove('hidden');
-                    infoBox.classList.remove('text-red-600');
-                    infoBox.classList.add('text-blue-600');
-                } else {
-                    infoBox.innerHTML = "ไม่พบข้อมูลผู้ป่วยในระบบ (กรุณาลงทะเบียนก่อน)";
-                    infoBox.classList.remove('hidden', 'text-blue-600');
-                    infoBox.classList.add('text-red-600');
-                }
-            }
-        });
+    // ตรวจสอบว่ามีข้อมูลโหลดไว้หรือยัง
+    if (!window.patientData) {
+        infoBox.innerHTML = "กรุณากลับไปหน้า Dashboard เพื่อโหลดข้อมูลก่อน";
+        infoBox.classList.remove('hidden', 'text-blue-600');
+        infoBox.classList.add('text-red-600');
+        return;
+    }
+
+    const patient = window.patientData.find(p => p.HN == hn);
+    
+    if (patient) {
+        infoBox.innerHTML = `พบผู้ป่วย: <b>${patient.Prefix || ''}${patient.FirstName} ${patient.LastName}</b> <span class="ml-2 px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">Dx: ${patient.Principal_Dx}</span>`;
+        infoBox.classList.remove('hidden');
+        infoBox.classList.remove('text-red-600', 'bg-red-50', 'border-red-200');
+        infoBox.classList.add('text-blue-700', 'bg-blue-50', 'border-blue-200', 'p-2', 'rounded', 'border', 'mt-2');
+    } else {
+        infoBox.innerHTML = "ไม่พบข้อมูลผู้ป่วยในระบบ (กรุณาลงทะเบียนก่อน)";
+        infoBox.classList.remove('hidden', 'text-blue-700', 'bg-blue-50', 'border-blue-200');
+        infoBox.classList.add('text-red-600', 'bg-red-50', 'border-red-200', 'p-2', 'rounded', 'border', 'mt-2');
+    }
 }
 
 // ฟังก์ชันคำนวณ OAS และแสดง Action อัตโนมัติ
