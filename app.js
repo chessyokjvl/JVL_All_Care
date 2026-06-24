@@ -10,15 +10,19 @@ document.addEventListener('DOMContentLoaded', () => {
 // ฟังก์ชันจัดการ UI (Mobile Menu & Routing)
 // ==========================================
 
-// ฟังก์ชันเปิด/ปิด Sidebar บนมือถือ
-function toggleSidebar() {
+// ฟังก์ชันเปิด/ปิด Sidebar บนมือถือ (บังคับ Global Scope)
+window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebar-backdrop');
     
-    // สลับ Class เพื่อเลื่อนเมนูเข้า-ออก และแสดง/ซ่อนฉากหลัง
-    sidebar.classList.toggle('-translate-x-full');
-    backdrop.classList.toggle('hidden');
-}
+    // ป้องกัน Error กรณีหา Element ไม่เจอ
+    if (sidebar && backdrop) {
+        sidebar.classList.toggle('-translate-x-full');
+        backdrop.classList.toggle('hidden');
+    } else {
+        console.error("ไม่พบ Sidebar หรือ Backdrop ในหน้า HTML");
+    }
+};
 
 // ฟังก์ชันสลับหน้าจอ (Routing) และจัดการ Active Menu
 function loadView(view) {
