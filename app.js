@@ -6,24 +6,44 @@ document.addEventListener('DOMContentLoaded', () => {
     loadView('dashboard');
 });
 
+// ==========================================
+// ฟังก์ชันจัดการ UI (Mobile Menu & Routing)
+// ==========================================
+
+// ฟังก์ชันเปิด/ปิด Sidebar บนมือถือ
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    
+    // สลับ Class เพื่อเลื่อนเมนูเข้า-ออก และแสดง/ซ่อนฉากหลัง
+    sidebar.classList.toggle('-translate-x-full');
+    backdrop.classList.toggle('hidden');
+}
+
 // ฟังก์ชันสลับหน้าจอ (Routing) และจัดการ Active Menu
 function loadView(view) {
     const content = document.getElementById('app-content');
     const pageTitle = document.getElementById('page-title');
 
     // 1. จัดการแถบสีของเมนู (Active Menu)
-    // ลบ class แถบสี (bg-blue-800) ออกจากทุกเมนูก่อน
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('bg-blue-800');
     });
-    
-    // เติม class แถบสี ให้กับเมนูที่ตรงกับ view ที่กำลังเปิด
     const activeNav = document.getElementById('nav-' + view);
     if (activeNav) {
         activeNav.classList.add('bg-blue-800');
     }
 
-    // 2. จัดการเนื้อหาหน้าจอ
+    // 2. ปิด Sidebar อัตโนมัติบนมือถือหลังจากคลิกเมนู
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    // เช็คว่าถ้าเปิดอยู่ในมือถือ ให้ทำการหุบเก็บ
+    if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+    }
+
+    // 3. จัดการเนื้อหาหน้าจอ
     if (view === 'dashboard') {
         pageTitle.innerText = "Dashboard สถานะผู้ป่วย";
         content.innerHTML = renderDashboardHTML();
