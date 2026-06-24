@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JVL All Care - MIP Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-blue-900 text-white flex flex-col">
+        <div class="h-16 flex items-center justify-center border-b border-blue-800">
+            <h1 class="text-xl font-bold"><i class="fa-solid fa-hospital-user mr-2"></i>JVL All Care</h1>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="#" onclick="loadView('dashboard')" class="block px-4 py-2 rounded bg-blue-800 hover:bg-blue-700 transition">
+                <i class="fa-solid fa-chart-line w-6"></i> Dashboard
+            </a>
+            <a href="#" onclick="loadView('register')" class="block px-4 py-2 rounded hover:bg-blue-700 transition">
+                <i class="fa-solid fa-user-plus w-6"></i> ลงทะเบียนผู้ป่วย
+            </a>
+            <a href="#" onclick="loadView('er_screening')" class="block px-4 py-2 rounded hover:bg-blue-700 transition">
+                <i class="fa-solid fa-truck-medical w-6"></i> คัดกรอง ER (OAS)
+            </a>
+        </nav>
+        <div class="p-4 text-xs text-blue-300 text-center border-t border-blue-800">
+            v1.0 Prototype
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+        <header class="h-16 bg-white shadow flex items-center justify-between px-6">
+            <h2 id="page-title" class="text-xl font-semibold text-gray-800">Dashboard</h2>
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-gray-600">ผู้ใช้งาน: Admin</span>
+                <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center"><i class="fa-solid fa-user"></i></div>
+            </div>
+        </header>
+
+        <div id="app-content" class="p-6">
+            </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
